@@ -1,0 +1,1003 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: StyleScan API – AI-powered haircut recommendation backend
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: users
+    description: User profile and account operations
+  - name: scans
+    description: Face scan session operations
+  - name: hairstyles
+    description: Hairstyle catalog operations
+  - name: barbers
+    description: Barber discovery operations
+
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+
+  # ─── Users ───────────────────────────────────────────────────────────────────
+  /users:
+    post:
+      operationId: createUser
+      tags: [users]
+      summary: Create a user profile
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /users/{userId}:
+    get:
+      operationId: getUser
+      tags: [users]
+      summary: Get a user profile
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: User found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    patch:
+      operationId: updateUser
+      tags: [users]
+      summary: Update a user profile
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "200":
+          description: User updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /users/{userId}/saved-styles:
+    get:
+      operationId: getSavedStyles
+      tags: [users]
+      summary: List a user's saved hairstyles
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      responses:
+        "200":
+          description: List of saved styles
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedStyleListResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+    post:
+      operationId: saveStyle
+      tags: [users]
+      summary: Save a hairstyle to a user's profile
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SaveStyleRequest"
+      responses:
+        "201":
+          description: Style saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SavedStyleResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /users/{userId}/saved-styles/{savedStyleId}:
+    delete:
+      operationId: removeSavedStyle
+      tags: [users]
+      summary: Remove a hairstyle from a user's saved styles
+      parameters:
+        - $ref: "#/components/parameters/UserId"
+        - name: savedStyleId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Style removed
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ─── Scans ────────────────────────────────────────────────────────────────────
+  /scans:
+    post:
+      operationId: createScan
+      tags: [scans]
+      summary: Create a new scan session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateScanRequest"
+      responses:
+        "201":
+          description: Scan session created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanSessionResponse"
+
+  /scans/{scanId}:
+    get:
+      operationId: getScan
+      tags: [scans]
+      summary: Get a scan session
+      parameters:
+        - $ref: "#/components/parameters/ScanId"
+      responses:
+        "200":
+          description: Scan session found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanSessionResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /scans/{scanId}/front-image:
+    put:
+      operationId: updateScanFrontImage
+      tags: [scans]
+      summary: Set the front-facing capture image URL for a scan
+      parameters:
+        - $ref: "#/components/parameters/ScanId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateFrontImageRequest"
+      responses:
+        "200":
+          description: Front image updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanSessionResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /scans/{scanId}/360-progress:
+    put:
+      operationId: update360Progress
+      tags: [scans]
+      summary: Update the 360° capture progress for a scan
+      parameters:
+        - $ref: "#/components/parameters/ScanId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Update360ProgressRequest"
+      responses:
+        "200":
+          description: Progress updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ScanSessionResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /scans/{scanId}/analyze:
+    post:
+      operationId: analyzeScan
+      tags: [scans]
+      summary: Trigger AI analysis for a scan session
+      parameters:
+        - $ref: "#/components/parameters/ScanId"
+      responses:
+        "200":
+          description: Analysis started or completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AnalysisStatusResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /scans/{scanId}/analysis:
+    get:
+      operationId: getScanAnalysis
+      tags: [scans]
+      summary: Get the face analysis result for a scan
+      parameters:
+        - $ref: "#/components/parameters/ScanId"
+      responses:
+        "200":
+          description: Analysis result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FaceAnalysisResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  /scans/{scanId}/matches:
+    get:
+      operationId: getScanMatches
+      tags: [scans]
+      summary: Get ranked hairstyle matches for a scan
+      parameters:
+        - $ref: "#/components/parameters/ScanId"
+      responses:
+        "200":
+          description: Ranked match list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StyleMatchListResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ─── Hairstyles ───────────────────────────────────────────────────────────────
+  /hairstyles:
+    get:
+      operationId: listHairstyles
+      tags: [hairstyles]
+      summary: List all hairstyles
+      parameters:
+        - name: length
+          in: query
+          schema:
+            type: string
+        - name: fade
+          in: query
+          schema:
+            type: string
+        - name: texture
+          in: query
+          schema:
+            type: string
+        - name: effortLevel
+          in: query
+          schema:
+            type: string
+        - name: faceShape
+          in: query
+          schema:
+            type: string
+        - name: category
+          in: query
+          schema:
+            type: string
+            enum: [hair, beard]
+      responses:
+        "200":
+          description: Hairstyle list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HairstyleListResponse"
+    post:
+      operationId: createHairstyle
+      tags: [hairstyles]
+      summary: Add a hairstyle to the catalog
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateHairstyleRequest"
+      responses:
+        "201":
+          description: Hairstyle created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HairstyleResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /hairstyles/{hairstyleId}:
+    get:
+      operationId: getHairstyle
+      tags: [hairstyles]
+      summary: Get a single hairstyle
+      parameters:
+        - $ref: "#/components/parameters/HairstyleId"
+      responses:
+        "200":
+          description: Hairstyle found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HairstyleResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+  # ─── Barbers ──────────────────────────────────────────────────────────────────
+  /barbers:
+    get:
+      operationId: listBarbers
+      tags: [barbers]
+      summary: List all active barbers
+      parameters:
+        - name: city
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Barber list
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BarberListResponse"
+    post:
+      operationId: createBarber
+      tags: [barbers]
+      summary: Register a barber
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateBarberRequest"
+      responses:
+        "201":
+          description: Barber created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BarberResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /barbers/nearby:
+    get:
+      operationId: getNearbyBarbers
+      tags: [barbers]
+      summary: Find barbers near a location
+      parameters:
+        - name: lat
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: lng
+          in: query
+          required: true
+          schema:
+            type: number
+        - name: radiusKm
+          in: query
+          schema:
+            type: number
+            default: 10
+      responses:
+        "200":
+          description: Nearby barbers
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BarberListResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+
+  /barbers/{barberId}:
+    get:
+      operationId: getBarber
+      tags: [barbers]
+      summary: Get a single barber
+      parameters:
+        - $ref: "#/components/parameters/BarberId"
+      responses:
+        "200":
+          description: Barber found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BarberResponse"
+        "404":
+          $ref: "#/components/responses/NotFound"
+
+components:
+  parameters:
+    UserId:
+      name: userId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    ScanId:
+      name: scanId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    HairstyleId:
+      name: hairstyleId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    BarberId:
+      name: barberId
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ErrorResponse"
+
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+
+    # ── User schemas ──────────────────────────────────────────────────────────
+    CreateUserRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+      required: []
+
+    UpdateUserRequest:
+      type: object
+      properties:
+        displayName:
+          type: string
+        avatarUrl:
+          type: string
+
+    UserResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          nullable: true
+        displayName:
+          type: string
+          nullable: true
+        avatarUrl:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - createdAt
+        - updatedAt
+
+    SaveStyleRequest:
+      type: object
+      properties:
+        hairstyleId:
+          type: string
+          format: uuid
+        scanSessionId:
+          type: string
+          format: uuid
+      required:
+        - hairstyleId
+
+    SavedStyleResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        hairstyleId:
+          type: string
+          format: uuid
+        scanSessionId:
+          type: string
+          format: uuid
+          nullable: true
+        savedAt:
+          type: string
+          format: date-time
+        hairstyle:
+          $ref: "#/components/schemas/HairstyleResponse"
+      required:
+        - id
+        - userId
+        - hairstyleId
+        - savedAt
+
+    SavedStyleListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/SavedStyleResponse"
+        total:
+          type: integer
+      required:
+        - data
+        - total
+
+    # ── Scan schemas ──────────────────────────────────────────────────────────
+    CreateScanRequest:
+      type: object
+      properties:
+        userId:
+          type: string
+          format: uuid
+
+    ScanSessionResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+          nullable: true
+        status:
+          type: string
+          enum: [pending, capturing, processing, completed, failed]
+        frontImageUrl:
+          type: string
+          nullable: true
+        scan360DataUrl:
+          type: string
+          nullable: true
+        captureProgress:
+          type: integer
+          minimum: 0
+          maximum: 100
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - status
+        - createdAt
+        - updatedAt
+
+    UpdateFrontImageRequest:
+      type: object
+      properties:
+        frontImageUrl:
+          type: string
+      required:
+        - frontImageUrl
+
+    Update360ProgressRequest:
+      type: object
+      properties:
+        captureProgress:
+          type: integer
+          minimum: 0
+          maximum: 100
+        scan360DataUrl:
+          type: string
+      required:
+        - captureProgress
+
+    AnalysisStatusResponse:
+      type: object
+      properties:
+        scanId:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [pending, capturing, processing, completed, failed]
+        steps:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProcessingStep"
+        matchCount:
+          type: integer
+          nullable: true
+      required:
+        - scanId
+        - status
+        - steps
+
+    ProcessingStep:
+      type: object
+      properties:
+        key:
+          type: string
+        label:
+          type: string
+        status:
+          type: string
+          enum: [pending, active, done]
+      required:
+        - key
+        - label
+        - status
+
+    FaceAnalysisResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        scanSessionId:
+          type: string
+          format: uuid
+        faceShape:
+          type: string
+          nullable: true
+        headShape:
+          type: string
+          nullable: true
+        jawType:
+          type: string
+          nullable: true
+        dataPointsCount:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - scanSessionId
+        - createdAt
+
+    StyleMatchItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        scanSessionId:
+          type: string
+          format: uuid
+        hairstyleId:
+          type: string
+          format: uuid
+        matchPercentage:
+          type: integer
+        rank:
+          type: integer
+        isBestMatch:
+          type: boolean
+        reasoning:
+          type: string
+          nullable: true
+        hairstyle:
+          $ref: "#/components/schemas/HairstyleResponse"
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - scanSessionId
+        - hairstyleId
+        - matchPercentage
+        - rank
+        - isBestMatch
+        - createdAt
+
+    StyleMatchListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/StyleMatchItem"
+        total:
+          type: integer
+        scanId:
+          type: string
+          format: uuid
+      required:
+        - data
+        - total
+        - scanId
+
+    # ── Hairstyle schemas ─────────────────────────────────────────────────────
+    CreateHairstyleRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        length:
+          type: string
+          enum: [short, medium, long]
+        fade:
+          type: string
+          enum: [none, low, mid_skin, high_skin, bald]
+        texture:
+          type: string
+          enum: [smooth, textured, curly, wavy]
+        effortLevel:
+          type: string
+          enum: [low, medium, high]
+        imageUrl:
+          type: string
+        hdImageUrl:
+          type: string
+        category:
+          type: string
+          enum: [hair, beard]
+          default: hair
+        suitableFaceShapes:
+          type: array
+          items:
+            type: string
+        suitableJawTypes:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+      required:
+        - name
+        - description
+        - length
+        - fade
+        - texture
+        - effortLevel
+
+    HairstyleResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        length:
+          type: string
+        fade:
+          type: string
+        texture:
+          type: string
+        effortLevel:
+          type: string
+        imageUrl:
+          type: string
+          nullable: true
+        hdImageUrl:
+          type: string
+          nullable: true
+        category:
+          type: string
+        suitableFaceShapes:
+          type: array
+          items:
+            type: string
+        suitableJawTypes:
+          type: array
+          items:
+            type: string
+        tags:
+          type: array
+          items:
+            type: string
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - description
+        - length
+        - fade
+        - texture
+        - effortLevel
+        - isActive
+        - createdAt
+
+    HairstyleListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/HairstyleResponse"
+        total:
+          type: integer
+      required:
+        - data
+        - total
+
+    # ── Barber schemas ────────────────────────────────────────────────────────
+    CreateBarberRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        shopName:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        lat:
+          type: number
+        lng:
+          type: number
+        phone:
+          type: string
+        rating:
+          type: number
+        specialties:
+          type: array
+          items:
+            type: string
+        imageUrl:
+          type: string
+      required:
+        - name
+
+    BarberResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        shopName:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        city:
+          type: string
+          nullable: true
+        lat:
+          type: number
+          nullable: true
+        lng:
+          type: number
+          nullable: true
+        phone:
+          type: string
+          nullable: true
+        rating:
+          type: number
+          nullable: true
+        reviewCount:
+          type: integer
+          nullable: true
+        specialties:
+          type: array
+          items:
+            type: string
+        imageUrl:
+          type: string
+          nullable: true
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - name
+        - isActive
+        - createdAt
+
+    BarberListResponse:
+      type: object
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/BarberResponse"
+        total:
+          type: integer
+      required:
+        - data
+        - total
