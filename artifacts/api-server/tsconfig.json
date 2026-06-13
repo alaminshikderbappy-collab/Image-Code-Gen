@@ -5,8 +5,9 @@
     "rootDir": "src",
     "types": ["node"],
     "esModuleInterop": true,
-    "noImplicitAny": false,
-    "skipLibCheck": true
+    "allowSyntheticDefaultImports": true,
+    "skipLibCheck": true,
+    "noImplicitAny": false
   },
   "include": ["src"],
   "references": [
