@@ -3,7 +3,10 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "src",
-    "types": ["node"]
+    "types": ["node"],
+    "esModuleInterop": true,
+    "noImplicitAny": false,
+    "skipLibCheck": true
   },
   "include": ["src"],
   "references": [
