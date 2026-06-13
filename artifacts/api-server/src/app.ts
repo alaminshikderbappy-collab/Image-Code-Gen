@@ -7,14 +7,14 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
-// We cast pinoHttp as 'any' to silence the "not callable" TypeScript error
+// @ts-ignore - Silences the strict TypeScript error for pino-http
 app.use(
-  (pinoHttp as any)({
+  pinoHttp({
     logger,
     serializers: {
       req(req: any) {
         return {
-          id: req.id,
+          id: req.id, // Fixed: Removed the broken link [req.id](http://req.id)
           method: req.method,
           url: req.url?.split("?")[0],
         };
