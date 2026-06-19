@@ -6,14 +6,14 @@ import { logger } from "./lib/logger";
 
 const app: Express = express();
 
-// @ts-ignore - Silences the strict TypeScript error for pino-http
+// @ts-ignore  <-- THIS MUST BE HERE, RIGHT ABOVE app.use
 app.use(
-  pinoHttp({
+  (pinoHttp as any)({
     logger,
     serializers: {
       req(req: any) {
         return {
-          id: req.id, // Fixed: Removed the broken link [req.id](http://req.id)
+          id: req.id,
           method: req.method,
           url: req.url?.split("?")[0],
         };
