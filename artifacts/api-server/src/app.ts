@@ -1,14 +1,14 @@
 import express, { type Express } from "express";
 import cors from "cors";
-import * as pinoHttp from "pino-http";
+import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
 const app: Express = express();
 
-// @ts-ignore  <-- THIS MUST BE HERE, RIGHT ABOVE app.use
+// @ts-ignore - Silences the TypeScript error for this library
 app.use(
-  (pinoHttp as any)({
+  pinoHttp({
     logger,
     serializers: {
       req(req: any) {
