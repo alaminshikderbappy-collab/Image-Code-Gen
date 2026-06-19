@@ -24,13 +24,18 @@
       "permissions": ["CAMERA", "READ_EXTERNAL_STORAGE"]
     },
     "web": {
-      "favicon": "./assets/images/icon.png"
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png",
+      "meta": {
+        "viewport": "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+      }
     },
     "plugins": [
       [
         "expo-router",
         {
-          "origin": "https://replit.com/"
+          "origin": "https://style-scan-app.vercel.app"
         }
       ],
       "expo-font",
