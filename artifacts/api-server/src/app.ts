@@ -29,7 +29,9 @@ app.use(
   }),
 );
 
-app.use(cors());
+// IMPORTANT: We changed this line to allow your Frontend to connect!
+app.use(cors({ origin: '*' }));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
