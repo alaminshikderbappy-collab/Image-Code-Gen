@@ -1,12 +1,14 @@
 import express, { type Express } from "express";
 import cors from "cors";
-import pinoHttp from "pino-http";
+import * as pinoHttpLib from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
+// This line fixes the "pinoHttp is not a function" crash
+const pinoHttp = (pinoHttpLib as any).default || pinoHttpLib;
+
 const app: Express = express();
 
-// @ts-ignore - Silences the TypeScript error for this library
 app.use(
   pinoHttp({
     logger,
