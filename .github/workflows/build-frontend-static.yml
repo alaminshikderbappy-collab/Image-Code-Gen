@@ -1,0 +1,44 @@
+name: Build frontend static
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Setup pnpm 9.15.0
+        run: |
+          corepack enable
+          corepack prepare pnpm@9.15.0 --activate
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build frontend
+        env:
+          CI: "true"
+          NODE_ENV: "production"
+          EXPO_PUBLIC_DOMAIN: "style-scan-app.vercel.app"
+          EXPO_PUBLIC_API_BASE_URL: "https://image-code-genapi.onrender.com"
+        run: pnpm --filter @workspace/stylescan-app build
+
+      - name: Commit built static files
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@github.com"
+          git add artifacts/stylescan-app/static-build
+          git commit -m "Add prebuilt frontend static output" || echo "No changes to commit"
+          git push
