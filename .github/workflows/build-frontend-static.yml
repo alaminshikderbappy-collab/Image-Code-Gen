@@ -1,4 +1,4 @@
-name: Build frontend static
+name: Build StyleScan Web App
 
 on:
   workflow_dispatch:
@@ -9,49 +9,41 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-
     env:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
+      CI: "true"
+      NODE_ENV: "production"
+      EXPO_PUBLIC_DOMAIN: "stylescana.onrender.com"
+      EXPO_PUBLIC_API_BASE_URL: "https://image-code-genapi.onrender.com"
 
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup pnpm 9.15.0
+      - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
           version: 9.15.0
-          run_install: false
 
       - name: Setup Node 20
         uses: actions/setup-node@v4
         with:
           node-version: 20.20.2
 
-      - name: Show versions
-        run: |
-          node -v
-          pnpm -v
-
       - name: Install dependencies
         run: pnpm install --prod=false
 
-      - name: Build frontend static output
-        env:
-          CI: "true"
-          NODE_ENV: "production"
-          EXPO_PUBLIC_DOMAIN: "style-scan-app.vercel.app"
-          EXPO_PUBLIC_API_BASE_URL: "https://image-code-genapi.onrender.com"
-          EXPO_DEBUG: "1"
-          NODE_OPTIONS: "--max-old-space-size=6144"
-        run: pnpm --filter @workspace/stylescan-app build
+      - name: Build Web App
+        # This command creates a 'dist' folder with the actual website
+        run: pnpm --filter @workspace/stylescan-app exec expo export --platform web
 
-      - name: Commit built files
+      - name: Commit Web Files
         run: |
           git config user.name "github-actions"
           git config user.email "github-actions@github.com"
-          git add pnpm-lock.yaml
+          # We move the 'dist' to 'static-build' so your current Render setup works
+          rm -rf artifacts/stylescan-app/static-build
+          cp -r artifacts/stylescan-app/dist artifacts/stylescan-app/static-build
           git add artifacts/stylescan-app/static-build
-          git commit -m "Add lockfile and prebuilt frontend static output" || echo "No changes to commit"
+          git commit -m "Deploy StyleScan Real Web App" || echo "No changes"
           git push
