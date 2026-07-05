@@ -12,7 +12,6 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
 import { useScan } from '@/context/ScanContext';
 import { useColors } from '@/hooks/useColors';
 
@@ -64,7 +63,7 @@ export default function MatchesScreen() {
   if (!current) {
     return (
       <View style={[styles.root, { backgroundColor: colors.background }]}>
-        <View style={styles.center}>
+        <div style={styles.center}>
           <Feather name="alert-circle" size={48} color={colors.mutedForeground} />
           <Text style={[styles.errTitle, { color: colors.foreground }]}>
             No {selectionLabel.toLowerCase()} matches found
@@ -83,7 +82,7 @@ export default function MatchesScreen() {
               Rescan
             </Text>
           </TouchableOpacity>
-        </View>
+        </div>
       </View>
     );
   }
@@ -96,7 +95,6 @@ export default function MatchesScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
           <Feather name="arrow-left" size={22} color={colors.foreground} />
         </TouchableOpacity>
-
         <View style={{ flex: 1, alignItems: 'center' }}>
           <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
             YOUR {selectionLabel.toUpperCase()} MATCHES
@@ -105,7 +103,6 @@ export default function MatchesScreen() {
             {total} styles found
           </Text>
         </View>
-
         <TouchableOpacity style={styles.iconBtn}>
           <Feather name="sliders" size={20} color={colors.foreground} />
         </TouchableOpacity>
@@ -129,7 +126,6 @@ export default function MatchesScreen() {
             colors={[colors.primary + '30', colors.card]}
             style={styles.cardGradient}
           />
-
           <View style={styles.cardTop}>
             <View style={[styles.catPill, { backgroundColor: colors.secondary }]}>
               <MaterialCommunityIcons
@@ -142,7 +138,6 @@ export default function MatchesScreen() {
                 {(h.fade ?? '').replace('_', ' ').toUpperCase()}
               </Text>
             </View>
-
             <View style={[styles.matchBadge, { backgroundColor: colors.primary }]}>
               <Text style={[styles.matchPct, { color: colors.primaryForeground }]}>
                 {current.matchPercentage}%
@@ -225,7 +220,6 @@ export default function MatchesScreen() {
               Previous
             </Text>
           </TouchableOpacity>
-
           <TouchableOpacity
             style={[styles.navBtn, { backgroundColor: colors.secondary }]}
             onPress={() => go(1)}
@@ -252,7 +246,6 @@ export default function MatchesScreen() {
             <Feather name="download" size={15} color={colors.foreground} />
             <Text style={[styles.navBtnText, { color: colors.foreground }]}>HD</Text>
           </TouchableOpacity>
-
           <TouchableOpacity style={[styles.navBtn, { backgroundColor: colors.secondary }]}>
             <MaterialCommunityIcons name="content-cut" size={15} color={colors.foreground} />
             <Text style={[styles.navBtnText, { color: colors.foreground }]}>
@@ -278,19 +271,19 @@ export default function MatchesScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 40 },
-  errTitle: { fontSize: 20, fontWeight: '700' as const, fontFamily: 'Inter_700Bold' },
+  errTitle: { fontSize: 20, fontWeight: '700', fontFamily: 'Inter_700Bold' },
   errSub: { fontSize: 14, fontFamily: 'Inter_400Regular' },
   retryBtn: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12, marginTop: 8 },
-  retryBtnText: { fontSize: 15, fontWeight: '700' as const, fontFamily: 'Inter_700Bold' },
+  retryBtnText: { fontSize: 15, fontWeight: '700', fontFamily: 'Inter_700Bold' },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 8 },
   iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
   headerSub: {
     fontSize: 10,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     fontFamily: 'Inter_700Bold',
     letterSpacing: 1.5,
   },
-  headerTitle: { fontSize: 16, fontWeight: '700' as const, fontFamily: 'Inter_700Bold' },
+  headerTitle: { fontSize: 16, fontWeight: '700', fontFamily: 'Inter_700Bold' },
   bestBadge: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -302,7 +295,7 @@ const styles = StyleSheet.create({
     marginLeft: 16,
     marginBottom: 10,
   },
-  bestBadgeText: { fontSize: 13, fontWeight: '700' as const, fontFamily: 'Inter_700Bold' },
+  bestBadgeText: { fontSize: 13, fontWeight: '700', fontFamily: 'Inter_700Bold' },
   card: { borderRadius: 20, padding: 20, overflow: 'hidden', marginBottom: 12 },
   cardGradient: { position: 'absolute', top: 0, left: 0, right: 0, height: 100, borderRadius: 20 },
   cardTop: {
@@ -321,37 +314,37 @@ const styles = StyleSheet.create({
   },
   catPillText: {
     fontSize: 10,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     fontFamily: 'Inter_700Bold',
     letterSpacing: 0.5,
   },
   matchBadge: { alignItems: 'center', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 12 },
   matchPct: {
     fontSize: 22,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     fontFamily: 'Inter_700Bold',
     lineHeight: 26,
   },
   matchLabel: {
     fontSize: 9,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     fontFamily: 'Inter_700Bold',
     letterSpacing: 1,
   },
-  styleName: { fontSize: 28, fontWeight: '700' as const, fontFamily: 'Inter_700Bold', marginBottom: 6 },
+  styleName: { fontSize: 28, fontWeight: '700', fontFamily: 'Inter_700Bold', marginBottom: 6 },
   styleDesc: { fontSize: 14, fontFamily: 'Inter_400Regular', lineHeight: 20, marginBottom: 16 },
   attrRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
   attr: { flex: 1, borderWidth: 1, borderRadius: 8, padding: 10, alignItems: 'center' },
   attrLabel: {
     fontSize: 9,
-    fontWeight: '700' as const,
+    fontWeight: '700',
     fontFamily: 'Inter_700Bold',
     letterSpacing: 0.8,
     marginBottom: 4,
   },
   attrValue: {
     fontSize: 12,
-    fontWeight: '600' as const,
+    fontWeight: '600',
     fontFamily: 'Inter_600SemiBold',
     textTransform: 'capitalize',
     textAlign: 'center',
@@ -371,7 +364,7 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 12,
   },
-  navBtnText: { fontSize: 14, fontWeight: '600' as const, fontFamily: 'Inter_600SemiBold' },
+  navBtnText: { fontSize: 14, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
   cta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -381,5 +374,5 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     marginTop: 4,
   },
-  ctaText: { fontSize: 16, fontWeight: '700' as const, fontFamily: 'Inter_700Bold' },
+  ctaText: { fontSize: 16, fontWeight: '700', fontFamily: 'Inter_700Bold' },
 });
