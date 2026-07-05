@@ -81,15 +81,20 @@ export default function ProcessingScreen() {
         if (cancelled) return;
         setStepStatuses(['done', 'done', 'active']);
 
-        if (scanId) {
-          await api.analyzeScan(scanId);
-          const result = await api.getMatches(scanId);
-          if (!cancelled) {
-            setMatches(result.data);
-          }
-        } else {
-          await delay(1500);
-        }
+if (scanId) {
+  await api.analyzeScan(scanId);
+  const result = await api.getMatches(scanId);
+
+  if (!cancelled) {
+    const filteredMatches = result.data.filter((item) =>
+      categories.includes(item.hairstyle.category as 'hair' | 'beard')
+    );
+
+    setMatches(filteredMatches);
+  }
+} else {
+  await delay(1500);
+}
 
         if (!cancelled) {
           setStepStatuses(['done', 'done', 'done']);
