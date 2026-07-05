@@ -9,6 +9,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
 
     steps:
       - name: Checkout repo
@@ -17,22 +18,31 @@ jobs:
       - name: Setup Node 20
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 20.20.2
+          cache: pnpm
 
       - name: Setup pnpm 9.15.0
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
+
+      - name: Show versions
         run: |
-          corepack enable
-          corepack prepare pnpm@9.15.0 --activate
+          node -v
+          pnpm -v
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --frozen-lockfile
 
-      - name: Build frontend
+      - name: Build frontend static output
         env:
           CI: "true"
           NODE_ENV: "production"
           EXPO_PUBLIC_DOMAIN: "style-scan-app.vercel.app"
           EXPO_PUBLIC_API_BASE_URL: "https://image-code-genapi.onrender.com"
+          EXPO_USE_EXOTIC: "1"
+          NODE_OPTIONS: "--max-old-space-size=6144"
         run: pnpm --filter @workspace/stylescan-app build
 
       - name: Commit built static files
