@@ -34,7 +34,7 @@ jobs:
 
       - name: Reset and seed database directly
         run: |
-          node <<'NODE'
+          pnpm --filter @workspace/db exec node <<'NODE'
           const { Client } = require('pg');
 
           const rows = [
@@ -177,3 +177,7 @@ jobs:
             process.exit(1);
           });
           NODE
+
+      - name: Verify API
+        run: |
+          curl -fsSL "https://image-code-genapi.onrender.com/api/hairstyles"
