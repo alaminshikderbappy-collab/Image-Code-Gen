@@ -1,4 +1,3 @@
-```ts
 export type HairstyleItem = {
   id: string;
   name: string;
@@ -154,4 +153,3 @@ export const api = {
       method: "DELETE",
     }),
 };
-```
