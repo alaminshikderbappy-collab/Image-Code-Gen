@@ -1,0 +1,126 @@
+{
+  "id": "af15d1c0-f7d0-4750-a416-f7b070f29ebf",
+  "createdAt": "2026-07-05T01:31:58.670Z",
+  "runtimeVersion": "exposdk:54.0.0",
+  "launchAsset": {
+    "key": "bundle-1783215118670-2467",
+    "contentType": "application/javascript",
+    "url": "https://style-scan-app.vercel.app/1783215118670-2467/_expo/static/js/ios/bundle.js"
+  },
+  "assets": [],
+  "metadata": {},
+  "extra": {
+    "eas": {},
+    "expoClient": {
+      "name": "StyleScan",
+      "slug": "stylescan-app",
+      "version": "1.0.0",
+      "orientation": "portrait",
+      "icon": "./assets/images/icon.png",
+      "scheme": "stylescan-app",
+      "userInterfaceStyle": "dark",
+      "newArchEnabled": true,
+      "splash": {
+        "image": "./assets/images/icon.png",
+        "resizeMode": "contain",
+        "backgroundColor": "#0A0A0A",
+        "imageUrl": "http://127.0.0.1:8081/assets/./assets/images/icon.png"
+      },
+      "ios": {
+        "supportsTablet": false,
+        "infoPlist": {
+          "NSCameraUsageDescription": "StyleScan needs camera access to scan your face and recommend hairstyles.",
+          "NSPhotoLibraryUsageDescription": "StyleScan needs photo library access to select a photo for your style scan."
+        }
+      },
+      "android": {
+        "permissions": [
+          "android.permission.CAMERA",
+          "android.permission.READ_EXTERNAL_STORAGE",
+          "android.permission.CAMERA",
+          "android.permission.RECORD_AUDIO"
+        ]
+      },
+      "web": {
+        "bundler": "metro",
+        "output": "static",
+        "favicon": "./assets/favicon.png",
+        "meta": {
+          "viewport": "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no"
+        }
+      },
+      "plugins": [
+        [
+          "expo-router",
+          {
+            "origin": "https://style-scan-app.vercel.app"
+          }
+        ],
+        "expo-font",
+        "expo-web-browser",
+        "expo-camera",
+        [
+          "expo-image-picker",
+          {
+            "photosPermission": "StyleScan needs photo access for your scan.",
+            "cameraPermission": "StyleScan needs camera access to scan your face."
+          }
+        ]
+      ],
+      "experiments": {
+        "typedRoutes": true,
+        "reactCompiler": true
+      },
+      "_internal": {
+        "isDebug": true,
+        "projectRoot": "/home/runner/work/Image-Code-Gen/Image-Code-Gen/artifacts/stylescan-app",
+        "dynamicConfigPath": {},
+        "staticConfigPath": "/home/runner/work/Image-Code-Gen/Image-Code-Gen/artifacts/stylescan-app/app.json",
+        "packageJsonPath": "/home/runner/work/Image-Code-Gen/Image-Code-Gen/artifacts/stylescan-app/package.json",
+        "pluginHistory": {
+          "expo-font": {
+            "name": "expo-font",
+            "version": "14.0.12"
+          },
+          "expo-web-browser": {
+            "name": "expo-web-browser",
+            "version": "15.0.11"
+          },
+          "expo-camera": {
+            "name": "expo-camera",
+            "version": "17.0.10"
+          },
+          "expo-image-picker": {
+            "name": "expo-image-picker",
+            "version": "17.0.11"
+          }
+        }
+      },
+      "sdkVersion": "54.0.0",
+      "platforms": [
+        "ios",
+        "android",
+        "web"
+      ],
+      "extra": {
+        "router": {
+          "origin": "https://style-scan-app.vercel.app"
+        }
+      },
+      "iconUrl": "http://127.0.0.1:8081/assets/./assets/images/icon.png",
+      "hostUri": "style-scan-app.vercel.app/ios"
+    },
+    "expoGo": {
+      "debuggerHost": "style-scan-app.vercel.app/ios",
+      "developer": {
+        "tool": "expo-cli",
+        "projectRoot": "/home/runner/work/Image-Code-Gen/Image-Code-Gen/artifacts/stylescan-app"
+      },
+      "packagerOpts": {
+        "dev": false
+      },
+      "mainModuleName": "node_modules/.pnpm/expo-router@6.0.24_@expo+metro-runtime@6.1.2_@types+react-dom@19.1.11_@types+react@19.1.17__@_v6uqmropehxvltrbzqlwvegr7u/node_modules/expo-router/entry"
+    },
+    "scopeKey": "@anonymous/stylescan-app-b6a1978c-3d24-4072-a0eb-e0f3c5b69bc8"
+  }
+}
