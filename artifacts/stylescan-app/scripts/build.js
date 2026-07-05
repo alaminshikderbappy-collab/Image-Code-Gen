@@ -78,7 +78,7 @@ function prepareDirectories(timestamp) {
 
   const staticBuild = path.join(projectRoot, "static-build");
   if (fs.existsSync(staticBuild)) {
-    fs.rmSync(staticBuild, { recursive: true });
+    fs.rmSync(staticBuild, { recursive: true, force: true });
   }
 
   const dirs = [
@@ -136,6 +136,7 @@ async function startMetro(expoPublicDomain, expoPublicReplId) {
 
   console.log("Starting Metro...");
   console.log(`Setting EXPO_PUBLIC_DOMAIN=${expoPublicDomain}`);
+
   const env = {
     ...process.env,
     EXPO_PUBLIC_DOMAIN: expoPublicDomain,
@@ -170,6 +171,7 @@ async function startMetro(expoPublicDomain, expoPublicReplId) {
       if (output) console.log(`[Metro] ${output}`);
     });
   }
+
   if (metroProcess.stderr) {
     metroProcess.stderr.on("data", (data) => {
       const output = data.toString().trim();
@@ -201,7 +203,10 @@ async function downloadFile(url, outputPath) {
     const response = await fetch(url, { signal: controller.signal });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      const errorBody = await response.text().catch(() => "");
+      throw new Error(
+        `HTTP ${response.status}${errorBody ? `\n${errorBody}` : ""}`,
+      );
     }
 
     const file = fs.createWriteStream(outputPath);
@@ -264,7 +269,10 @@ async function downloadManifest(platform) {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
+      const errorBody = await response.text().catch(() => "");
+      throw new Error(
+        `HTTP ${response.status}${errorBody ? `\n${errorBody}` : ""}`,
+      );
     }
 
     const manifest = await response.json();
@@ -287,8 +295,6 @@ async function downloadBundlesAndManifests(timestamp) {
   console.log("This may take several minutes for production builds...");
 
   try {
-    // Bundles are sequential — Metro can't handle both platforms simultaneously
-    // without stalling. Manifests are cheap and run in parallel after.
     await downloadBundle("ios", timestamp);
     await downloadBundle("android", timestamp);
 
@@ -339,8 +345,8 @@ function extractAssets(timestamp) {
       if (!assetsMap.has(key)) {
         const asset = {
           url: path.posix.join("/", decodedPath, filename),
-          originalPath: originalPath,
-          filename: filename,
+          originalPath,
+          filename,
           relativePath: decodedPath,
           hash: match[2],
           platforms: new Set(),
@@ -348,6 +354,7 @@ function extractAssets(timestamp) {
 
         assetsMap.set(key, asset);
       }
+
       assetsMap.get(key).platforms.add(platform);
     }
   };
@@ -395,9 +402,11 @@ async function downloadAssets(assets, timestamp) {
         path.join(workspaceRoot, decodedPath, asset.filename),
       ];
       const found = candidates.find((p) => fs.existsSync(p));
+
       if (!found) {
         throw new Error(`Asset not found on disk: ${asset.filename}`);
       }
+
       fs.copyFileSync(found, output);
       successCount++;
     } catch (error) {
