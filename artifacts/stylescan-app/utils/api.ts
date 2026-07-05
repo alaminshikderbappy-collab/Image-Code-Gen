@@ -60,29 +60,22 @@ export type SavedStyleItem = {
 const getBaseUrl = (): string => {
   const apiBase = process.env.EXPO_PUBLIC_API_BASE_URL;
   if (apiBase) return apiBase.replace(/\/$/, "");
-
   const domain = process.env.EXPO_PUBLIC_DOMAIN;
   if (domain) return `https://${domain}`;
-
   return "http://localhost:80";
 };
 
 async function apiFetch<T>(path: string, options?: RequestInit): Promise<T> {
   const url = `${getBaseUrl()}/api${path}`;
-
   const res = await fetch(url, {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
-
   if (res.status === 204) return undefined as unknown as T;
-
   const data = await res.json();
-
   if (!res.ok) {
     throw new Error(data?.message ?? `API error ${res.status}`);
   }
-
   return data as T;
 }
 
@@ -92,62 +85,53 @@ export const api = {
       method: "POST",
       body: JSON.stringify({}),
     }),
-
   createScan: (userId?: string | null) =>
     apiFetch<ScanSession>("/scans", {
       method: "POST",
       body: JSON.stringify({ userId }),
     }),
-
   updateFrontImage: (scanId: string, frontImageUrl: string) =>
     apiFetch<ScanSession>(`/scans/${scanId}/front-image`, {
       method: "PUT",
       body: JSON.stringify({ frontImageUrl }),
     }),
-
   update360Progress: (scanId: string, captureProgress: number) =>
     apiFetch<ScanSession>(`/scans/${scanId}/360-progress`, {
       method: "PUT",
       body: JSON.stringify({ captureProgress }),
     }),
-
   analyzeScan: (scanId: string) =>
     apiFetch<{
       scanId: string;
       status: string;
-      steps: unknown[];
+      steps: any[];
       matchCount: number | null;
     }>(`/scans/${scanId}/analyze`, {
       method: "POST",
     }),
-
   getMatches: (scanId: string) =>
     apiFetch<{ data: StyleMatchItem[]; total: number; scanId: string }>(
       `/scans/${scanId}/matches`,
     ),
-
   listHairstyles: (category?: string) => {
     const q = category ? `?category=${category}` : "";
     return apiFetch<{ data: HairstyleItem[]; total: number }>(
       `/hairstyles${q}`,
     );
   },
-
   getSavedStyles: (userId: string) =>
     apiFetch<{ data: SavedStyleItem[]; total: number }>(
       `/users/${userId}/saved-styles`,
     ),
-
   saveStyle: (
     userId: string,
     hairstyleId: string,
     scanSessionId?: string | null,
   ) =>
-    apiFetch<SavedStyleItem>(`/users/${userId}/saved-styles`, {
+    apiFetch<SavedStyleItem>("/users/" + userId + "/saved-styles", {
       method: "POST",
       body: JSON.stringify({ hairstyleId, scanSessionId }),
     }),
-
   removeSavedStyle: (userId: string, savedStyleId: string) =>
     apiFetch<void>(`/users/${userId}/saved-styles/${savedStyleId}`, {
       method: "DELETE",
