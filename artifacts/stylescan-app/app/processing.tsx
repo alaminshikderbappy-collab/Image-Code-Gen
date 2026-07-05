@@ -9,7 +9,6 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
 import { useScan } from '@/context/ScanContext';
 import { useColors } from '@/hooks/useColors';
 import { api } from '@/utils/api';
@@ -28,11 +27,13 @@ export default function ProcessingScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const { scanId, setMatches } = useScan();
-
+  
+  // categories and scanId from ScanContext
+  const { scanId, setMatches, categories } = useScan(); 
+  
   const [stepStatuses, setStepStatuses] = useState<StepStatus[]>(['active', 'pending', 'pending']);
   const [timeLeft, setTimeLeft] = useState(6);
-
+  
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const pulse2Anim = useRef(new Animated.Value(0.85)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -41,6 +42,7 @@ export default function ProcessingScreen() {
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
 
   useEffect(() => {
+    // Start background animations
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, { toValue: 1.1, duration: 1200, useNativeDriver: true }),
@@ -59,6 +61,7 @@ export default function ProcessingScreen() {
       Animated.timing(rotateAnim, { toValue: 1, duration: 3000, useNativeDriver: true })
     ).start();
 
+    // Visual timer countdown
     timerRef.current = setInterval(() => {
       setTimeLeft((t) => Math.max(0, t - 1));
     }, 1000);
@@ -71,49 +74,62 @@ export default function ProcessingScreen() {
   useEffect(() => {
     let cancelled = false;
 
-    const run = async () => {
+    const runProcessing = async () => {
       try {
+        // Step 1: Simulated Mapping delay
         await delay(1200);
         if (cancelled) return;
         setStepStatuses(['done', 'active', 'pending']);
 
+        // Step 2: Simulated Analyzing delay
         await delay(1000);
         if (cancelled) return;
         setStepStatuses(['done', 'done', 'active']);
 
-if (scanId) {
-  await api.analyzeScan(scanId);
-  const result = await api.getMatches(scanId);
-
-  if (!cancelled) {
-    const filteredMatches = result.data.filter((item) =>
-      categories.includes(item.hairstyle.category as 'hair' | 'beard')
-    );
-
-    setMatches(filteredMatches);
-  }
-} else {
-  await delay(1500);
-}
+        // Step 3: Real API Logic
+        if (scanId) {
+          try {
+            // Tell backend to start AI analysis
+            await api.analyzeScan(scanId);
+            
+            // Fetch the generated matches
+            const result = await api.getMatches(scanId);
+            
+            if (!cancelled && result?.data) {
+              // Filter matches based on user selection (hair, beard, or both)
+              const selectedCategories = categories || ['hair', 'beard'];
+              const filteredMatches = result.data.filter((item: any) =>
+                selectedCategories.includes(item.hairstyle.category)
+              );
+              setMatches(filteredMatches);
+            }
+          } catch (error) {
+            console.error('Processing error:', error);
+          }
+        } else {
+          // Demo mode fallback if no scanId exists
+          await delay(1500);
+        }
 
         if (!cancelled) {
           setStepStatuses(['done', 'done', 'done']);
           await delay(400);
           if (timerRef.current) clearInterval(timerRef.current);
+          
+          // Move to results screen
           router.replace('/matches');
         }
-      } catch {
-        if (!cancelled) {
-          router.replace('/matches');
-        }
+      } catch (err) {
+        if (!cancelled) router.replace('/matches');
       }
     };
 
-    run();
+    runProcessing();
+
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [scanId, categories]);
 
   const spin = rotateAnim.interpolate({
     inputRange: [0, 1],
@@ -122,7 +138,6 @@ if (scanId) {
 
   return (
     <View style={[styles.root, { backgroundColor: colors.background, paddingTop: topPad }]}>
-      {/* Pulsing circles */}
       <View style={styles.pulseContainer}>
         <Animated.View
           style={[styles.pulseRing2, { borderColor: colors.primary + '18', transform: [{ scale: pulse2Anim }] }]}
@@ -137,7 +152,6 @@ if (scanId) {
         </View>
       </View>
 
-      {/* Labels */}
       <Text style={[styles.tag, { color: colors.primary }]}>AI PROCESSING</Text>
       <Text style={[styles.title, { color: colors.foreground }]}>
         Reading your face,{'\n'}designing your cut.
@@ -146,7 +160,6 @@ if (scanId) {
         Our model is analyzing 47 data points{'\n'}across your scan.
       </Text>
 
-      {/* Steps */}
       <View style={[styles.steps, { backgroundColor: colors.card, borderColor: colors.border }]}>
         {STEPS.map((step, i) => {
           const status = stepStatuses[i] ?? 'pending';
@@ -174,7 +187,7 @@ if (scanId) {
                   styles.stepLabel,
                   {
                     color: status === 'pending' ? colors.mutedForeground : colors.foreground,
-                    fontFamily: status === 'active' ? 'Inter_600SemiBold' : 'Inter_400Regular',
+                    fontWeight: status === 'active' ? '600' : '400',
                   },
                 ]}
               >
@@ -188,7 +201,9 @@ if (scanId) {
         })}
       </View>
 
-      <Text style={[styles.timer, { color: colors.mutedForeground }]}>~{timeLeft}s remaining</Text>
+      <Text style={[styles.timer, { color: colors.mutedForeground }]}>
+        ~{timeLeft}s remaining
+      </Text>
     </View>
   );
 }
@@ -199,13 +214,13 @@ const styles = StyleSheet.create({
   pulseRing2: { position: 'absolute', width: 180, height: 180, borderRadius: 90, borderWidth: 1 },
   pulseRing1: { position: 'absolute', width: 140, height: 140, borderRadius: 70, borderWidth: 2 },
   iconCircle: { width: 90, height: 90, borderRadius: 45, alignItems: 'center', justifyContent: 'center' },
-  tag: { fontSize: 11, fontWeight: '700' as const, fontFamily: 'Inter_700Bold', letterSpacing: 2.5, marginBottom: 14 },
-  title: { fontSize: 26, fontWeight: '700' as const, fontFamily: 'Inter_700Bold', textAlign: 'center', lineHeight: 34, marginBottom: 10 },
-  sub: { fontSize: 14, fontFamily: 'Inter_400Regular', textAlign: 'center', lineHeight: 20, marginBottom: 36 },
-  steps: { width: '100%', borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
+  tag: { fontSize: 11, fontWeight: '700', letterSpacing: 2.5, marginBottom: 14 },
+  title: { fontSize: 26, fontWeight: '700', textAlign: 'center', lineHeight: 34, marginBottom: 10 },
+  sub: { fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 36 },
+  steps: { width: '100%', borderRadius: 16, borderWeight: 1, overflow: 'hidden' },
   stepRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14 },
   stepIcon: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   stepLabel: { flex: 1, fontSize: 15 },
   stepDots: { fontSize: 15, letterSpacing: 1 },
-  timer: { marginTop: 24, fontSize: 13, fontFamily: 'Inter_400Regular' },
+  timer: { marginTop: 24, fontSize: 13 },
 });
