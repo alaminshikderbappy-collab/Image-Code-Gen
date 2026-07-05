@@ -1,0 +1,132 @@
+name: Setup DB and seed hairstyles
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  db:
+    runs-on: ubuntu-latest
+
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      API_BASE_URL: "https://image-code-genapi.onrender.com"
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.20.2
+
+      - name: Install dependencies
+        run: pnpm install --prod=false
+
+      - name: Push DB schema
+        run: pnpm --filter @workspace/db push
+
+      - name: Check backend health
+        run: curl -fsSL "$API_BASE_URL/api/healthz"
+
+      - name: Seed hairstyles
+        run: |
+          curl -X POST "$API_BASE_URL/api/hairstyles" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "name":"Textured Crop",
+              "description":"Short textured crop with clean fade and easy maintenance.",
+              "length":"short",
+              "fade":"low",
+              "texture":"textured",
+              "effortLevel":"low",
+              "imageUrl":"https://images.unsplash.com/photo-1517832606299-7ae9b720a186?auto=format&fit=crop&w=800&q=80",
+              "hdImageUrl":"https://images.unsplash.com/photo-1517832606299-7ae9b720a186?auto=format&fit=crop&w=1200&q=80",
+              "suitableFaceShapes":["oval","square","round"],
+              "suitableJawTypes":["strong","soft"],
+              "tags":["modern","clean","easy"],
+              "category":"hair",
+              "isActive":true
+            }'
+
+          curl -X POST "$API_BASE_URL/api/hairstyles" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "name":"Classic Side Part",
+              "description":"Timeless side-part style with neat structure and polish.",
+              "length":"medium",
+              "fade":"none",
+              "texture":"straight",
+              "effortLevel":"medium",
+              "imageUrl":"https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=800&q=80",
+              "hdImageUrl":"https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=1200&q=80",
+              "suitableFaceShapes":["oval","oblong","heart"],
+              "suitableJawTypes":["strong","narrow"],
+              "tags":["classic","formal","balanced"],
+              "category":"hair",
+              "isActive":true
+            }'
+
+          curl -X POST "$API_BASE_URL/api/hairstyles" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "name":"Buzz Cut Fade",
+              "description":"Ultra-clean buzz cut with fade for low-effort sharpness.",
+              "length":"short",
+              "fade":"mid_skin",
+              "texture":"coarse",
+              "effortLevel":"low",
+              "imageUrl":"https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=800&q=80",
+              "hdImageUrl":"https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=1200&q=80",
+              "suitableFaceShapes":["square","oval","diamond"],
+              "suitableJawTypes":["strong","wide"],
+              "tags":["sharp","minimal","clean"],
+              "category":"hair",
+              "isActive":true
+            }'
+
+          curl -X POST "$API_BASE_URL/api/hairstyles" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "name":"Short Boxed Beard",
+              "description":"Defined short beard that sharpens the jawline.",
+              "length":"short",
+              "fade":"none",
+              "texture":"coarse",
+              "effortLevel":"medium",
+              "imageUrl":"https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=800&q=80",
+              "hdImageUrl":"https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=1200&q=80",
+              "suitableFaceShapes":["oval","round","square"],
+              "suitableJawTypes":["strong","soft","wide"],
+              "tags":["beard","defined","balanced"],
+              "category":"beard",
+              "isActive":true
+            }'
+
+          curl -X POST "$API_BASE_URL/api/hairstyles" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "name":"Full Beard Taper",
+              "description":"Fuller beard with clean taper for a premium look.",
+              "length":"medium",
+              "fade":"low",
+              "texture":"wavy",
+              "effortLevel":"high",
+              "imageUrl":"https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=800&q=80",
+              "hdImageUrl":"https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=1200&q=80",
+              "suitableFaceShapes":["oblong","oval","diamond"],
+              "suitableJawTypes":["narrow","strong"],
+              "tags":["beard","premium","full"],
+              "category":"beard",
+              "isActive":true
+            }'
