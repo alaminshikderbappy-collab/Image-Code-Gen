@@ -21,7 +21,6 @@ type ScanContextType = {
 };
 
 const ScanContext = createContext<ScanContextType | null>(null);
-
 const USER_KEY = 'stylescan_user_id';
 
 export function ScanProvider({ children }: { children: React.ReactNode }) {
@@ -43,7 +42,8 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
           await AsyncStorage.setItem(USER_KEY, uid);
         }
         setUserId(uid);
-      } catch {
+      } catch (err) {
+        console.error("Failed to init user:", err);
       } finally {
         setIsLoadingUser(false);
       }
