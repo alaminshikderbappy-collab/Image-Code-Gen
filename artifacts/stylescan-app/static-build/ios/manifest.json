@@ -1,11 +1,11 @@
 {
-  "id": "af15d1c0-f7d0-4750-a416-f7b070f29ebf",
-  "createdAt": "2026-07-05T01:31:58.670Z",
+  "id": "651fe0bf-5c73-49ac-9604-c65c1edb584d",
+  "createdAt": "2026-07-05T17:59:40.344Z",
   "runtimeVersion": "exposdk:54.0.0",
   "launchAsset": {
-    "key": "bundle-1783215118670-2467",
+    "key": "bundle-1783274380344-2464",
     "contentType": "application/javascript",
-    "url": "https://style-scan-app.vercel.app/1783215118670-2467/_expo/static/js/ios/bundle.js"
+    "url": "https://style-scan-app.vercel.app/1783274380344-2464/_expo/static/js/ios/bundle.js"
   },
   "assets": [],
   "metadata": {},
@@ -121,6 +121,6 @@
       },
       "mainModuleName": "node_modules/.pnpm/expo-router@6.0.24_@expo+metro-runtime@6.1.2_@types+react-dom@19.1.11_@types+react@19.1.17__@_v6uqmropehxvltrbzqlwvegr7u/node_modules/expo-router/entry"
     },
-    "scopeKey": "@anonymous/stylescan-app-b6a1978c-3d24-4072-a0eb-e0f3c5b69bc8"
+    "scopeKey": "@anonymous/stylescan-app-01915f54-7318-48ff-b262-258fdf26fcd9"
   }
 }
