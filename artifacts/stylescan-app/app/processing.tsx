@@ -28,12 +28,12 @@ export default function ProcessingScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   
-  // categories and scanId from ScanContext
+  // scanId, setMatches, and categories should come from your ScanContext
   const { scanId, setMatches, categories } = useScan(); 
-  
+    
   const [stepStatuses, setStepStatuses] = useState<StepStatus[]>(['active', 'pending', 'pending']);
   const [timeLeft, setTimeLeft] = useState(6);
-  
+    
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const pulse2Anim = useRef(new Animated.Value(0.85)).current;
   const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -76,47 +76,46 @@ export default function ProcessingScreen() {
 
     const runProcessing = async () => {
       try {
-        // Step 1: Simulated Mapping delay
+        // Step 1: Mapping
         await delay(1200);
         if (cancelled) return;
         setStepStatuses(['done', 'active', 'pending']);
 
-        // Step 2: Simulated Analyzing delay
+        // Step 2: Analyzing
         await delay(1000);
         if (cancelled) return;
         setStepStatuses(['done', 'done', 'active']);
 
-        // Step 3: Real API Logic
+        // Step 3: API matching logic
         if (scanId) {
           try {
-            // Tell backend to start AI analysis
             await api.analyzeScan(scanId);
-            
-            // Fetch the generated matches
             const result = await api.getMatches(scanId);
-            
+              
             if (!cancelled && result?.data) {
-              // Filter matches based on user selection (hair, beard, or both)
-              const selectedCategories = categories || ['hair', 'beard'];
+              // Ensure we have a default if categories are empty
+              const selectedCategories = (categories && categories.length > 0) 
+                ? categories 
+                : ['hair', 'beard'];
+
               const filteredMatches = result.data.filter((item: any) =>
                 selectedCategories.includes(item.hairstyle.category)
               );
               setMatches(filteredMatches);
             }
           } catch (error) {
-            console.error('Processing error:', error);
+            console.error('API Error during processing:', error);
           }
         } else {
-          // Demo mode fallback if no scanId exists
-          await delay(1500);
+          await delay(1500); // Fallback delay for testing
         }
 
         if (!cancelled) {
           setStepStatuses(['done', 'done', 'done']);
           await delay(400);
           if (timerRef.current) clearInterval(timerRef.current);
-          
-          // Move to results screen
+            
+          // Redirect to the results page
           router.replace('/matches');
         }
       } catch (err) {
@@ -217,7 +216,7 @@ const styles = StyleSheet.create({
   tag: { fontSize: 11, fontWeight: '700', letterSpacing: 2.5, marginBottom: 14 },
   title: { fontSize: 26, fontWeight: '700', textAlign: 'center', lineHeight: 34, marginBottom: 10 },
   sub: { fontSize: 14, textAlign: 'center', lineHeight: 20, marginBottom: 36 },
-  steps: { width: '100%', borderRadius: 16, borderWeight: 1, overflow: 'hidden' },
+  steps: { width: '100%', borderRadius: 16, borderWidth: 1, overflow: 'hidden' },
   stepRow: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 14 },
   stepIcon: { width: 28, height: 28, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   stepLabel: { flex: 1, fontSize: 15 },
