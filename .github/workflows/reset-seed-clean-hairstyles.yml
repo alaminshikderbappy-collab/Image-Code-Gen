@@ -1,0 +1,179 @@
+name: Reset and seed clean hairstyles
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+          run_install: false
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20.20.2
+
+      - name: Install dependencies
+        run: pnpm install --prod=false
+
+      - name: Reset and seed database directly
+        run: |
+          node <<'NODE'
+          const { Client } = require('pg');
+
+          const rows = [
+            {
+              name: "Textured Crop",
+              description: "Short textured crop with clean fade and easy maintenance.",
+              length: "short",
+              fade: "low",
+              texture: "textured",
+              effortLevel: "low",
+              imageUrl: null,
+              hdImageUrl: null,
+              suitableFaceShapes: ["oval", "square", "round"],
+              suitableJawTypes: ["strong", "soft"],
+              tags: ["modern", "clean", "easy"],
+              category: "hair",
+              isActive: true,
+            },
+            {
+              name: "Classic Side Part",
+              description: "Timeless side-part style with neat structure and polish.",
+              length: "medium",
+              fade: "none",
+              texture: "straight",
+              effortLevel: "medium",
+              imageUrl: null,
+              hdImageUrl: null,
+              suitableFaceShapes: ["oval", "oblong", "heart"],
+              suitableJawTypes: ["strong", "narrow"],
+              tags: ["classic", "formal", "balanced"],
+              category: "hair",
+              isActive: true,
+            },
+            {
+              name: "Buzz Cut Fade",
+              description: "Ultra-clean buzz cut with fade for low-effort sharpness.",
+              length: "short",
+              fade: "mid_skin",
+              texture: "coarse",
+              effortLevel: "low",
+              imageUrl: null,
+              hdImageUrl: null,
+              suitableFaceShapes: ["square", "oval", "diamond"],
+              suitableJawTypes: ["strong", "wide"],
+              tags: ["sharp", "minimal", "clean"],
+              category: "hair",
+              isActive: true,
+            },
+            {
+              name: "Short Boxed Beard",
+              description: "Defined short beard that sharpens the jawline.",
+              length: "short",
+              fade: "none",
+              texture: "coarse",
+              effortLevel: "medium",
+              imageUrl: null,
+              hdImageUrl: null,
+              suitableFaceShapes: ["oval", "round", "square"],
+              suitableJawTypes: ["strong", "soft", "wide"],
+              tags: ["beard", "defined", "balanced"],
+              category: "beard",
+              isActive: true,
+            },
+            {
+              name: "Full Beard Taper",
+              description: "Fuller beard with clean taper for a premium look.",
+              length: "medium",
+              fade: "low",
+              texture: "wavy",
+              effortLevel: "high",
+              imageUrl: null,
+              hdImageUrl: null,
+              suitableFaceShapes: ["oblong", "oval", "diamond"],
+              suitableJawTypes: ["narrow", "strong"],
+              tags: ["beard", "premium", "full"],
+              category: "beard",
+              isActive: true,
+            },
+          ];
+
+          async function run() {
+            const client = new Client({
+              connectionString: process.env.DATABASE_URL,
+            });
+
+            await client.connect();
+
+            await client.query("TRUNCATE TABLE hairstyles CASCADE;");
+
+            for (const row of rows) {
+              await client.query(
+                `
+                INSERT INTO hairstyles (
+                  name,
+                  description,
+                  length,
+                  fade,
+                  texture,
+                  effort_level,
+                  image_url,
+                  hd_image_url,
+                  suitable_face_shapes,
+                  suitable_jaw_types,
+                  tags,
+                  category,
+                  is_active
+                )
+                VALUES (
+                  $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13
+                )
+                `,
+                [
+                  row.name,
+                  row.description,
+                  row.length,
+                  row.fade,
+                  row.texture,
+                  row.effortLevel,
+                  row.imageUrl,
+                  row.hdImageUrl,
+                  row.suitableFaceShapes,
+                  row.suitableJawTypes,
+                  row.tags,
+                  row.category,
+                  row.isActive,
+                ]
+              );
+            }
+
+            const result = await client.query(
+              "SELECT id, name, category, image_url, hd_image_url FROM hairstyles ORDER BY name ASC;"
+            );
+
+            console.log(JSON.stringify(result.rows, null, 2));
+            await client.end();
+          }
+
+          run().catch((err) => {
+            console.error(err);
+            process.exit(1);
+          });
+          NODE
