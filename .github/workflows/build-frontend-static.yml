@@ -13,12 +13,6 @@ jobs:
 
     env:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: "true"
-      CI: "true"
-      NODE_ENV: "production"
-      EXPO_PUBLIC_DOMAIN: "style-scan-app.vercel.app"
-      EXPO_PUBLIC_API_BASE_URL: "https://image-code-genapi.onrender.com"
-      EXPO_USE_EXOTIC: "1"
-      NODE_OPTIONS: "--max-old-space-size=6144"
 
     steps:
       - name: Checkout repo
@@ -41,9 +35,16 @@ jobs:
           pnpm -v
 
       - name: Install dependencies
-        run: pnpm install
+        run: pnpm install --prod=false
 
       - name: Build frontend static output
+        env:
+          CI: "true"
+          NODE_ENV: "production"
+          EXPO_PUBLIC_DOMAIN: "style-scan-app.vercel.app"
+          EXPO_PUBLIC_API_BASE_URL: "https://image-code-genapi.onrender.com"
+          EXPO_USE_EXOTIC: "1"
+          NODE_OPTIONS: "--max-old-space-size=6144"
         run: pnpm --filter @workspace/stylescan-app build
 
       - name: Commit built files
