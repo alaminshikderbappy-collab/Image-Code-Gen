@@ -2,22 +2,16 @@ import { Feather, Ionicons } from '@expo/vector-icons';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef } from 'react';
 import {
-  ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View, Dimensions, Alert
+  ActivityIndicator, Image, StyleSheet, Text, TouchableOpacity, View, Dimensions, Alert, Modal, ScrollView
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useScan } from '@/context/ScanContext';
 import { useColors } from '@/hooks/useColors';
 import { api } from '@/utils/api';
 
-const { width } = Dimensions.get('window');
-const STEPS = [
-  { key: 'front', label: 'Front View' },
-  { key: 'left', label: 'Left Side' },
-  { key: 'right', label: 'Right Side' },
-  { key: 'back', label: 'Back View' },
-];
+const { width, height } = Dimensions.get('window');
 
 export default function ScanScreen() {
   const colors = useColors();
@@ -29,38 +23,17 @@ export default function ScanScreen() {
   const { userId, setScanId, setFrontImageUri } = useScan();
 
   const [facing, setFacing] = useState<'front' | 'back'>('front');
-  const [stepIndex, setStepIndex] = useState(0);
   const [capturedImages, setCapturedImages] = useState<string[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [countdown, setCountdown] = useState<number | null>(null);
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
 
-  // Auto-capture logic: Starts if user holds still (simulated by 3s timer on screen entry)
-  useEffect(() => {
-    if (permission?.granted && capturedImages.length === 0 && !countdown) {
-      setCountdown(3);
-    }
-  }, [permission]);
-
-  useEffect(() => {
-    if (countdown === 0) {
-      takePicture();
-      setCountdown(null);
-    }
-    if (countdown && countdown > 0) {
-      const timer = setTimeout(() => setCountdown(countdown - 1), 1000);
-      return () => clearTimeout(timer);
-    }
-  }, [countdown]);
-
-  const toggleCamera = () => setFacing(prev => prev === 'front' ? 'back' : 'front');
-
-  const handleImageAdded = (uri: string) => {
-    const newImages = [...capturedImages, uri];
-    setCapturedImages(newImages);
-    if (stepIndex < STEPS.length - 1) {
-      setStepIndex(stepIndex + 1);
-    } else {
-      finishScan(newImages);
+  const takePicture = async () => {
+    if (!cameraRef.current) return;
+    try {
+      const photo = await cameraRef.current.takePictureAsync({ quality: 0.7 });
+      if (photo) setCapturedImages(prev => [...prev, photo.uri]);
+    } catch {
+      Alert.alert("Camera Error", "Try using Gallery upload.");
     }
   };
 
@@ -71,29 +44,24 @@ export default function ScanScreen() {
       aspect: [3, 4],
       quality: 0.7,
     });
-    if (!result.canceled) handleImageAdded(result.assets[0].uri);
+    if (!result.canceled) setCapturedImages(prev => [...prev, result.assets[0].uri]);
   };
 
-  const takePicture = async () => {
-    if (!cameraRef.current) return;
-    try {
-      const photo = await cameraRef.current.takePictureAsync({ quality: 0.7 });
-      if (photo) handleImageAdded(photo.uri);
-    } catch {
-      Alert.alert("Camera Error", "Try using Gallery upload.");
-    }
+  const removeImage = (index: number) => {
+    setCapturedImages(prev => prev.filter((_, i) => i !== index));
   };
 
-  const finishScan = async (imagesToUse: string[]) => {
+  const startAnalysis = async () => {
+    if (capturedImages.length === 0) return;
     setIsProcessing(true);
     try {
       const scan = await api.createScan(userId);
       setScanId(scan.id);
-      setFrontImageUri(imagesToUse[0]);
-      await api.updateFrontImage(scan.id, imagesToUse[0]);
+      setFrontImageUri(capturedImages[0]);
+      await api.updateFrontImage(scan.id, capturedImages[0]);
       router.replace('/processing');
     } catch {
-      router.replace('/processing'); // Fallback for demo
+      router.replace('/processing');
     } finally {
       setIsProcessing(false);
     }
@@ -102,10 +70,9 @@ export default function ScanScreen() {
   if (!permission?.granted) {
     return (
       <View style={[styles.root, { backgroundColor: colors.background, justifyContent: 'center', padding: 30 }]}>
-        <Feather name="camera" size={50} color={colors.primary} style={{alignSelf:'center', marginBottom: 20}} />
-        <Text style={{ color: colors.foreground, textAlign: 'center', fontSize: 18, fontWeight: '700' }}>Camera Access Needed</Text>
-        <TouchableOpacity style={[styles.mainBtn, { backgroundColor: colors.primary, marginTop: 30 }]} onPress={requestPermission}>
-          <Text style={styles.btnText}>Allow Camera</Text>
+        <Text style={{ color: colors.foreground, textAlign: 'center', fontSize: 18, marginBottom: 20 }}>Camera Access Required</Text>
+        <TouchableOpacity style={{ backgroundColor: colors.primary, padding: 15, borderRadius: 12 }} onPress={requestPermission}>
+          <Text style={{ color: '#fff', textAlign: 'center', fontWeight: 'bold' }}>Allow Camera</Text>
         </TouchableOpacity>
       </View>
     );
@@ -116,44 +83,49 @@ export default function ScanScreen() {
       <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing}>
         <View style={[styles.overlay, { paddingTop: insets.top + 15 }]}>
           
-          {/* Header */}
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}><Feather name="x" size={24} color="#fff" /></TouchableOpacity>
-            <View style={styles.progressRow}>
-               {STEPS.map((_, i) => <View key={i} style={[styles.pDot, { backgroundColor: i <= stepIndex ? colors.primary : 'rgba(255,255,255,0.2)' }]} />)}
-            </View>
-            <TouchableOpacity onPress={toggleCamera} style={styles.iconBtn}><Ionicons name="camera-reverse" size={24} color="#fff" /></TouchableOpacity>
+            <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}><Feather name="arrow-left" size={24} color="#fff" /></TouchableOpacity>
+            <Text style={styles.countText}>{capturedImages.length} Captures</Text>
+            <TouchableOpacity onPress={() => setFacing(f => f === 'front' ? 'back' : 'front')} style={styles.iconBtn}><Ionicons name="camera-reverse" size={24} color="#fff" /></TouchableOpacity>
           </View>
 
-          {/* Center Guide */}
-          <View style={styles.center}>
-             {countdown !== null && <Text style={styles.timerText}>{countdown}</Text>}
-             <View style={[styles.oval, { borderColor: countdown ? '#fff' : colors.primary }]} />
-             <Text style={styles.stepLabel}>{STEPS[stepIndex].label}</Text>
-             {capturedImages.length > 0 && (
-               <TouchableOpacity style={styles.skipBtn} onPress={() => finishScan(capturedImages)}>
-                  <Text style={{color: colors.primary, fontWeight: '700'}}>Analyze 1 Photo Only →</Text>
-               </TouchableOpacity>
-             )}
-          </View>
+          <View style={styles.center}><View style={[styles.oval, { borderColor: colors.primary }]} /></View>
 
-          {/* Footer */}
-          <View style={[styles.footer, { paddingBottom: insets.bottom + 30 }]}>
-             <View style={styles.thumbScroll}>
-                {capturedImages.map((uri, i) => <Image key={i} source={{ uri }} style={styles.mini} />)}
-             </View>
+          <View style={[styles.footer, { paddingBottom: insets.bottom + 20 }]}>
+             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.thumbContainer}>
+                {capturedImages.map((uri, i) => (
+                  <View key={i} style={styles.thumbWrapper}>
+                    <TouchableOpacity onPress={() => setPreviewImage(uri)}>
+                      <Image source={{ uri }} style={styles.thumb} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.deleteBtn} onPress={() => removeImage(i)}>
+                      <Feather name="x" size={12} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
+             </ScrollView>
              
              <View style={styles.controls}>
                 <TouchableOpacity onPress={pickFromGallery} style={styles.iconBtn}><Feather name="image" size={24} color="#fff" /></TouchableOpacity>
-                <TouchableOpacity style={styles.shutter} onPress={takePicture} disabled={isProcessing}>
-                   <View style={styles.shutterInner} />
-                </TouchableOpacity>
-                <View style={{width: 44}} />
+                <TouchableOpacity style={styles.shutter} onPress={takePicture}><View style={styles.shutterInner} /></TouchableOpacity>
+                {capturedImages.length > 0 ? (
+                  <TouchableOpacity style={[styles.analyzeBtn, {backgroundColor: colors.primary}]} onPress={startAnalysis}>
+                    <Text style={styles.analyzeText}>Analyze ({capturedImages.length})</Text>
+                  </TouchableOpacity>
+                ) : <View style={{width: 80}} />}
              </View>
           </View>
-
         </View>
       </CameraView>
+
+      <Modal visible={!!previewImage} transparent={true} animationType="fade">
+        <View style={styles.modalBg}>
+          <Image source={{uri: previewImage || ''}} style={styles.fullPreview} resizeMode="contain" />
+          <TouchableOpacity style={styles.closeBtn} onPress={() => setPreviewImage(null)}>
+            <Text style={styles.closeText}>Close Preview</Text>
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -163,19 +135,21 @@ const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'space-between' },
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 20 },
   iconBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
-  progressRow: { flexDirection: 'row', gap: 6 },
-  pDot: { width: 25, height: 4, borderRadius: 2 },
+  countText: { color: '#fff', fontWeight: 'bold' },
   center: { alignItems: 'center' },
-  timerText: { color: '#fff', fontSize: 64, fontWeight: '800', position: 'absolute', top: -100 },
-  oval: { width: width * 0.7, height: width * 0.9, borderRadius: 150, borderWidth: 2, borderStyle: 'dashed' },
-  stepLabel: { color: '#fff', fontSize: 22, fontWeight: '800', marginTop: 20 },
-  skipBtn: { marginTop: 15, backgroundColor: 'rgba(255,255,255,0.9)', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 20 },
-  footer: { alignItems: 'center' },
-  thumbScroll: { flexDirection: 'row', gap: 10, marginBottom: 20 },
-  mini: { width: 40, height: 40, borderRadius: 8, borderWidth: 1, borderColor: '#fff' },
-  controls: { flexDirection: 'row', alignItems: 'center', gap: 40 },
+  oval: { width: width * 0.7, height: width * 0.85, borderRadius: 150, borderWidth: 2, borderStyle: 'dashed' },
+  footer: { alignItems: 'center', width: '100%' },
+  thumbContainer: { paddingHorizontal: 20, gap: 12, height: 80, marginBottom: 15 },
+  thumbWrapper: { position: 'relative', width: 60, height: 75 },
+  thumb: { width: '100%', height: '100%', borderRadius: 8, borderWidth: 1, borderColor: '#fff' },
+  deleteBtn: { position: 'absolute', top: -5, right: -5, backgroundColor: '#FF3B30', borderRadius: 10, width: 20, height: 20, justifyContent: 'center', alignItems: 'center' },
+  controls: { flexDirection: 'row', alignItems: 'center', gap: 30, width: '100%', justifyContent: 'center' },
   shutter: { width: 80, height: 80, borderRadius: 40, borderWidth: 4, borderColor: 'rgba(255,255,255,0.3)', justifyContent: 'center', alignItems: 'center' },
   shutterInner: { width: 64, height: 64, borderRadius: 32, backgroundColor: '#fff' },
-  mainBtn: { height: 56, borderRadius: 16, justifyContent: 'center', alignItems: 'center' },
-  btnText: { color: '#fff', fontWeight: '700', fontSize: 16 }
+  analyzeBtn: { paddingHorizontal: 20, paddingVertical: 12, borderRadius: 25 },
+  analyzeText: { color: '#fff', fontWeight: '800' },
+  modalBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
+  fullPreview: { width: width * 0.9, height: height * 0.7 },
+  closeBtn: { marginTop: 20, padding: 15 },
+  closeText: { color: '#fff', fontSize: 18, fontWeight: 'bold' }
 });
