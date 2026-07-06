@@ -1,5 +1,7 @@
-name: Final Image Seed
-on: workflow_dispatch
+name: Master Database Seed
+on:
+  workflow_dispatch:
+
 jobs:
   seed:
     runs-on: ubuntu-latest
@@ -11,23 +13,29 @@ jobs:
         with:
           version: 9.15.0
       - run: pnpm install --prod=false
-      - name: Reset with Images
+      - name: Seed Styles with Required Data
         run: |
           pnpm --filter @workspace/db exec node <<'NODE'
           const { Client } = require('pg');
+          const styles = [
+            { name: "Textured Crop", desc: "Short layers with a clean low fade.", len: "Short", fade: "low", tex: "Textured", effort: "Low", cat: "hair", img: "https://images.unsplash.com/photo-1517832606299-7ae9b720a186?w=800" },
+            { name: "Classic Side Part", desc: "Timeless polished business look.", len: "Medium", fade: "none", tex: "Straight", effort: "Medium", cat: "hair", img: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800" },
+            { name: "Buzz Cut Fade", desc: "Sharp skin fade with minimal top.", len: "Short", fade: "mid_skin", tex: "Coarse", effort: "Low", cat: "hair", img: "https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?w=800" },
+            { name: "Full Tapered Beard", desc: "Professional tapered beard profile.", len: "Medium", fade: "low", tex: "Wavy", effort: "High", cat: "beard", img: "https://images.unsplash.com/photo-1590540179852-2110a54f813a?w=800" }
+          ];
           async function run() {
             const client = new Client({ connectionString: process.env.DATABASE_URL });
             await client.connect();
             await client.query("TRUNCATE TABLE hairstyles CASCADE;");
-            const styles = [
-              ["Textured Crop", "https://images.unsplash.com/photo-1517832606299-7ae9b720a186?w=800", "hair"],
-              ["Classic Side Part", "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800", "hair"],
-              ["Full Beard", "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800", "beard"]
-            ];
             for (const s of styles) {
-              await client.query("INSERT INTO hairstyles (name, description, image_url, hd_image_url, category, is_active) VALUES ($1, 'Modern look', $2, $2, $3, true)", s);
+              await client.query(
+                `INSERT INTO hairstyles (name, description, length, fade, texture, effort_level, category, image_url, hd_image_url, is_active, tags, suitable_face_shapes, suitable_jaw_types) 
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $8, true, ARRAY['Modern'], ARRAY['Oval'], ARRAY['Strong'])`,
+                [s.name, s.desc, s.len, s.fade, s.tex, s.effort, s.cat, s.img]
+              );
             }
             await client.end();
+            console.log("Database seeded successfully!");
           }
           run();
           NODE
