@@ -1,0 +1,33 @@
+name: Final Image Seed
+on: workflow_dispatch
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - run: pnpm install --prod=false
+      - name: Reset with Images
+        run: |
+          pnpm --filter @workspace/db exec node <<'NODE'
+          const { Client } = require('pg');
+          async function run() {
+            const client = new Client({ connectionString: process.env.DATABASE_URL });
+            await client.connect();
+            await client.query("TRUNCATE TABLE hairstyles CASCADE;");
+            const styles = [
+              ["Textured Crop", "https://images.unsplash.com/photo-1517832606299-7ae9b720a186?w=800", "hair"],
+              ["Classic Side Part", "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=800", "hair"],
+              ["Full Beard", "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=800", "beard"]
+            ];
+            for (const s of styles) {
+              await client.query("INSERT INTO hairstyles (name, description, image_url, hd_image_url, category, is_active) VALUES ($1, 'Modern look', $2, $2, $3, true)", s);
+            }
+            await client.end();
+          }
+          run();
+          NODE
