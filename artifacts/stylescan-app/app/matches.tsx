@@ -2,7 +2,7 @@ import { Feather, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Platform,
   ScrollView,
@@ -10,10 +10,18 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Dimensions,
+  Image,
+  ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { useScan } from '@/context/ScanContext';
 import { useColors } from '@/hooks/useColors';
+import { api } from '@/utils/api';
+
+const { width } = Dimensions.get('window');
+const CARD_WIDTH = width * 0.85;
 
 const FADE_LABEL: Record<string, string> = {
   none: 'None',
@@ -27,13 +35,17 @@ export default function MatchesScreen() {
   const colors = useColors();
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  
   const {
     matches,
+    setMatches,
     selectedMatchIndex,
     setSelectedMatchIndex,
     clearScan,
     categories,
   } = useScan();
+
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const topPad = Platform.OS === 'web' ? 67 : insets.top;
   const botPad = Platform.OS === 'web' ? 34 : insets.bottom;
@@ -48,11 +60,24 @@ export default function MatchesScreen() {
         ? 'Beard'
         : 'Hair';
 
-  const go = (dir: -1 | 1) => {
-    const next = selectedMatchIndex + dir;
-    if (next < 0 || next >= total) return;
-    Haptics.selectionAsync();
-    setSelectedMatchIndex(next);
+  const handleGenerateMore = async () => {
+    setIsGenerating(true);
+    try {
+      // Simulate "Generating More" by fetching all available styles
+      const result = await api.listHairstyles();
+      const newVariations = (result.data || []).map((h, i) => ({
+        id: `gen-${Date.now()}-${i}`,
+        matchPercentage: 82 - (i * 2),
+        isBestMatch: false,
+        reasoning: "AI recalibrated: This variation provides a more classic balance for your jawline.",
+        hairstyle: h
+      }));
+      setMatches([...matches, ...newVariations]);
+    } catch (error) {
+      console.error("Failed to generate more:", error);
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const viewDetail = (index: number) => {
@@ -60,16 +85,13 @@ export default function MatchesScreen() {
     router.push({ pathname: '/style-detail', params: { index: String(index) } });
   };
 
-  if (!current) {
+  if (matches.length === 0) {
     return (
-      <View style={[styles.root, { backgroundColor: colors.background }]}>
-        <div style={styles.center}>
+      <View style={[styles.root, { backgroundColor: colors.background, justifyContent: 'center' }]}>
+        <View style={styles.center}>
           <Feather name="alert-circle" size={48} color={colors.mutedForeground} />
           <Text style={[styles.errTitle, { color: colors.foreground }]}>
             No {selectionLabel.toLowerCase()} matches found
-          </Text>
-          <Text style={[styles.errSub, { color: colors.mutedForeground }]}>
-            Try scanning again
           </Text>
           <TouchableOpacity
             style={[styles.retryBtn, { backgroundColor: colors.primary }]}
@@ -78,29 +100,23 @@ export default function MatchesScreen() {
               router.replace('/scan');
             }}
           >
-            <Text style={[styles.retryBtnText, { color: colors.primaryForeground }]}>
-              Rescan
-            </Text>
+            <Text style={[styles.retryBtnText, { color: colors.primaryForeground }]}>Rescan</Text>
           </TouchableOpacity>
-        </div>
+        </View>
       </View>
     );
   }
 
-  const h = current.hairstyle;
-
   return (
     <View style={[styles.root, { backgroundColor: colors.background }]}>
       <View style={[styles.header, { paddingTop: topPad + 8 }]}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.iconBtn}>
+        <TouchableOpacity onPress={() => router.replace('/')} style={styles.iconBtn}>
           <Feather name="arrow-left" size={22} color={colors.foreground} />
         </TouchableOpacity>
         <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text style={[styles.headerSub, { color: colors.mutedForeground }]}>
-            YOUR {selectionLabel.toUpperCase()} MATCHES
-          </Text>
+          <Text style={[styles.headerSub, { color: colors.primary }]}>AI ENGINE GENERATED</Text>
           <Text style={[styles.headerTitle, { color: colors.foreground }]}>
-            {total} styles found
+            {total} Variations Found
           </Text>
         </View>
         <TouchableOpacity style={styles.iconBtn}>
@@ -108,160 +124,99 @@ export default function MatchesScreen() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: botPad + 20 }}
-      >
-        {current.isBestMatch && (
-          <View style={[styles.bestBadge, { backgroundColor: colors.primary }]}>
-            <Feather name="star" size={13} color={colors.primaryForeground} />
-            <Text style={[styles.bestBadgeText, { color: colors.primaryForeground }]}>
-              Best Match
-            </Text>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: botPad + 20 }}>
+        
+        {/* HORIZONTAL VARIATION SLIDER */}
+        <ScrollView
+          horizontal
+          pagingEnabled
+          showsHorizontalScrollIndicator={false}
+          snapToInterval={CARD_WIDTH + 20}
+          decelerationRate="fast"
+          contentContainerStyle={styles.sliderContent}
+        >
+          {matches.map((item, i) => (
+            <TouchableOpacity 
+              key={item.id} 
+              activeOpacity={0.9}
+              style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}
+              onPress={() => viewDetail(i)}
+            >
+              <Image 
+                source={{ uri: item.hairstyle.imageUrl || 'https://via.placeholder.com/400' }} 
+                style={styles.cardImage} 
+              />
+              <LinearGradient
+                colors={['transparent', 'rgba(0,0,0,0.8)']}
+                style={StyleSheet.absoluteFill}
+              />
+              
+              <View style={styles.cardOverlay}>
+                <View style={styles.badgeRow}>
+                  <View style={[styles.matchBadge, { backgroundColor: colors.primary }]}>
+                    <Text style={styles.matchPct}>{item.matchPercentage}%</Text>
+                    <Text style={styles.matchLabel}>MATCH</Text>
+                  </View>
+                  {item.isBestMatch && (
+                    <View style={styles.bestBadge}>
+                      <Text style={styles.bestText}>BEST FIT</Text>
+                    </View>
+                  )}
+                </View>
+
+                <Text style={styles.styleName}>{item.hairstyle.name}</Text>
+                <Text style={styles.styleDesc} numberOfLines={2}>{item.hairstyle.description}</Text>
+                
+                <View style={styles.cardFooter}>
+                  <Text style={{ color: colors.primary, fontWeight: '700' }}>See Detail & Swap →</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+
+        {/* ATTRIBUTES FOR SELECTED STYLE */}
+        {current && (
+          <View style={styles.detailsSection}>
+             <View style={styles.attrRow}>
+                {[
+                  { label: 'LENGTH', value: current.hairstyle.length },
+                  { label: 'FADE', value: FADE_LABEL[current.hairstyle.fade] || current.hairstyle.fade },
+                  { label: 'TEXTURE', value: current.hairstyle.texture },
+                ].map((a) => (
+                  <View key={a.label} style={[styles.attrBox, { borderColor: colors.border }]}>
+                    <Text style={[styles.attrLabel, { color: colors.mutedForeground }]}>{a.label}</Text>
+                    <Text style={[styles.attrValue, { color: colors.foreground }]}>{a.value}</Text>
+                  </View>
+                ))}
+             </View>
           </View>
         )}
 
-        <View style={[styles.card, { backgroundColor: colors.card, marginHorizontal: 16 }]}>
-          <LinearGradient
-            colors={[colors.primary + '30', colors.card]}
-            style={styles.cardGradient}
-          />
-          <View style={styles.cardTop}>
-            <View style={[styles.catPill, { backgroundColor: colors.secondary }]}>
-              <MaterialCommunityIcons
-                name={h.category === 'beard' ? 'face-man' : 'content-cut'}
-                size={12}
-                color={colors.mutedForeground}
-              />
-              <Text style={[styles.catPillText, { color: colors.mutedForeground }]}>
-                {(h.category ?? 'hair').toUpperCase()} ·{' '}
-                {(h.fade ?? '').replace('_', ' ').toUpperCase()}
-              </Text>
-            </View>
-            <View style={[styles.matchBadge, { backgroundColor: colors.primary }]}>
-              <Text style={[styles.matchPct, { color: colors.primaryForeground }]}>
-                {current.matchPercentage}%
-              </Text>
-              <Text style={[styles.matchLabel, { color: colors.primaryForeground + 'aa' }]}>
-                MATCH
-              </Text>
-            </View>
-          </View>
-
-          <Text style={[styles.styleName, { color: colors.foreground }]}>{h.name}</Text>
-          <Text style={[styles.styleDesc, { color: colors.mutedForeground }]}>
-            {h.description}
-          </Text>
-
-          <View style={styles.attrRow}>
-            {[
-              { label: 'LENGTH', value: h.length },
-              { label: 'FADE', value: FADE_LABEL[h.fade] ?? h.fade },
-              { label: 'TEXTURE', value: h.texture },
-            ].map((a) => (
-              <View key={a.label} style={[styles.attr, { borderColor: colors.border }]}>
-                <Text style={[styles.attrLabel, { color: colors.mutedForeground }]}>
-                  {a.label}
-                </Text>
-                <Text
-                  style={[styles.attrValue, { color: colors.foreground }]}
-                  numberOfLines={1}
-                >
-                  {a.value}
-                </Text>
-              </View>
-            ))}
-          </View>
-
-          <View style={styles.tags}>
-            {h.tags.slice(0, 3).map((tag) => (
-              <View key={tag} style={[styles.tag, { backgroundColor: colors.secondary }]}>
-                <Text style={[styles.tagText, { color: colors.mutedForeground }]}>
-                  {tag}
-                </Text>
-              </View>
-            ))}
-          </View>
-
-          <View style={styles.dots}>
-            {matches.map((_, i) => (
-              <TouchableOpacity key={i} onPress={() => setSelectedMatchIndex(i)}>
-                <View
-                  style={[
-                    styles.dot,
-                    {
-                      backgroundColor:
-                        i === selectedMatchIndex ? colors.primary : colors.border,
-                    },
-                  ]}
-                />
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        <View style={[styles.navRow, { marginHorizontal: 16 }]}>
-          <TouchableOpacity
-            style={[styles.navBtn, { backgroundColor: colors.secondary }]}
-            onPress={() => go(-1)}
-            disabled={selectedMatchIndex === 0}
+        {/* GENERATE MORE BUTTON */}
+        <View style={{ paddingHorizontal: 20, marginTop: 20 }}>
+          <TouchableOpacity 
+            style={[styles.moreBtn, { borderColor: colors.primary }]} 
+            onPress={handleGenerateMore}
+            disabled={isGenerating}
           >
-            <Text
-              style={[
-                styles.navBtnText,
-                {
-                  color:
-                    selectedMatchIndex === 0
-                      ? colors.mutedForeground
-                      : colors.foreground,
-                },
-              ]}
-            >
-              Previous
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.navBtn, { backgroundColor: colors.secondary }]}
-            onPress={() => go(1)}
-            disabled={selectedMatchIndex === total - 1}
-          >
-            <Text
-              style={[
-                styles.navBtnText,
-                {
-                  color:
-                    selectedMatchIndex === total - 1
-                      ? colors.mutedForeground
-                      : colors.foreground,
-                },
-              ]}
-            >
-              Next
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={[styles.navRow, { marginHorizontal: 16 }]}>
-          <TouchableOpacity style={[styles.navBtn, { backgroundColor: colors.secondary }]}>
-            <Feather name="download" size={15} color={colors.foreground} />
-            <Text style={[styles.navBtnText, { color: colors.foreground }]}>HD</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.navBtn, { backgroundColor: colors.secondary }]}>
-            <MaterialCommunityIcons name="content-cut" size={15} color={colors.foreground} />
-            <Text style={[styles.navBtnText, { color: colors.foreground }]}>
-              Show barber
-            </Text>
+            {isGenerating ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : (
+              <>
+                <MaterialCommunityIcons name="auto-fix" size={20} color={colors.primary} />
+                <Text style={[styles.moreBtnText, { color: colors.primary }]}>Generate More Variations</Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
 
         <TouchableOpacity
-          style={[styles.cta, { backgroundColor: colors.primary, marginHorizontal: 16 }]}
+          style={[styles.cta, { backgroundColor: colors.primary, marginHorizontal: 20 }]}
           onPress={() => viewDetail(selectedMatchIndex)}
         >
-          <Feather name="check" size={18} color={colors.primaryForeground} />
-          <Text style={[styles.ctaText, { color: colors.primaryForeground }]}>
-            See This Style
-          </Text>
+          <Feather name="check" size={18} color="#fff" />
+          <Text style={styles.ctaText}>See This Style</Text>
         </TouchableOpacity>
       </ScrollView>
     </View>
@@ -270,109 +225,35 @@ export default function MatchesScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, padding: 40 },
-  errTitle: { fontSize: 20, fontWeight: '700', fontFamily: 'Inter_700Bold' },
-  errSub: { fontSize: 14, fontFamily: 'Inter_400Regular' },
-  retryBtn: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12, marginTop: 8 },
-  retryBtnText: { fontSize: 15, fontWeight: '700', fontFamily: 'Inter_700Bold' },
-  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 8 },
-  iconBtn: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  headerSub: {
-    fontSize: 10,
-    fontWeight: '700',
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: 1.5,
-  },
-  headerTitle: { fontSize: 16, fontWeight: '700', fontFamily: 'Inter_700Bold' },
-  bestBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 20,
-    marginLeft: 16,
-    marginBottom: 10,
-  },
-  bestBadgeText: { fontSize: 13, fontWeight: '700', fontFamily: 'Inter_700Bold' },
-  card: { borderRadius: 20, padding: 20, overflow: 'hidden', marginBottom: 12 },
-  cardGradient: { position: 'absolute', top: 0, left: 0, right: 0, height: 100, borderRadius: 20 },
-  cardTop: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 16,
-  },
-  catPill: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 20,
-  },
-  catPillText: {
-    fontSize: 10,
-    fontWeight: '700',
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: 0.5,
-  },
-  matchBadge: { alignItems: 'center', paddingHorizontal: 14, paddingVertical: 6, borderRadius: 12 },
-  matchPct: {
-    fontSize: 22,
-    fontWeight: '700',
-    fontFamily: 'Inter_700Bold',
-    lineHeight: 26,
-  },
-  matchLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: 1,
-  },
-  styleName: { fontSize: 28, fontWeight: '700', fontFamily: 'Inter_700Bold', marginBottom: 6 },
-  styleDesc: { fontSize: 14, fontFamily: 'Inter_400Regular', lineHeight: 20, marginBottom: 16 },
-  attrRow: { flexDirection: 'row', gap: 8, marginBottom: 14 },
-  attr: { flex: 1, borderWidth: 1, borderRadius: 8, padding: 10, alignItems: 'center' },
-  attrLabel: {
-    fontSize: 9,
-    fontWeight: '700',
-    fontFamily: 'Inter_700Bold',
-    letterSpacing: 0.8,
-    marginBottom: 4,
-  },
-  attrValue: {
-    fontSize: 12,
-    fontWeight: '600',
-    fontFamily: 'Inter_600SemiBold',
-    textTransform: 'capitalize',
-    textAlign: 'center',
-  },
-  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 16 },
-  tag: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
-  tagText: { fontSize: 12, fontFamily: 'Inter_400Regular' },
-  dots: { flexDirection: 'row', justifyContent: 'center', gap: 6 },
-  dot: { width: 7, height: 7, borderRadius: 3.5 },
-  navRow: { flexDirection: 'row', gap: 10, marginBottom: 10 },
-  navBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    paddingVertical: 14,
-    borderRadius: 12,
-  },
-  navBtnText: { fontSize: 14, fontWeight: '600', fontFamily: 'Inter_600SemiBold' },
-  cta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 10,
-    paddingVertical: 18,
-    borderRadius: 14,
-    marginTop: 4,
-  },
-  ctaText: { fontSize: 16, fontWeight: '700', fontFamily: 'Inter_700Bold' },
+  center: { alignItems: 'center', padding: 40 },
+  errTitle: { fontSize: 20, fontWeight: '700', textAlign: 'center', marginBottom: 20 },
+  retryBtn: { paddingHorizontal: 24, paddingVertical: 14, borderRadius: 12 },
+  retryBtnText: { fontSize: 15, fontWeight: '700' },
+  header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 15 },
+  headerCenter: { flex: 1, alignItems: 'center' },
+  headerSub: { fontSize: 9, fontWeight: '800', letterSpacing: 1 },
+  headerTitle: { fontSize: 18, fontWeight: '800' },
+  iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  sliderContent: { paddingLeft: 20, paddingRight: 20, gap: 20 },
+  card: { width: CARD_WIDTH, height: 400, borderRadius: 30, overflow: 'hidden', borderWidth: 1 },
+  cardImage: { width: '100%', height: '100%' },
+  cardOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 25 },
+  badgeRow: { flexDirection: 'row', gap: 10, marginBottom: 15 },
+  matchBadge: { padding: 8, borderRadius: 12, alignItems: 'center' },
+  matchPct: { color: '#fff', fontSize: 16, fontWeight: '900' },
+  matchLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 7, fontWeight: '700' },
+  bestBadge: { backgroundColor: '#FFD700', paddingHorizontal: 10, justifyContent: 'center', borderRadius: 8 },
+  bestText: { color: '#000', fontSize: 9, fontWeight: '900' },
+  styleName: { color: '#fff', fontSize: 28, fontWeight: '900' },
+  styleDesc: { color: 'rgba(255,255,255,0.8)', fontSize: 14, marginTop: 5 },
+  cardFooter: { marginTop: 15 },
+  detailsSection: { padding: 20 },
+  attrRow: { flexDirection: 'row', gap: 10 },
+  attrBox: { flex: 1, padding: 12, borderRadius: 16, borderWidth: 1, alignItems: 'center' },
+  attrLabel: { fontSize: 9, fontWeight: '800' },
+  attrValue: { fontSize: 12, fontWeight: '700', marginTop: 2 },
+  moreBtn: { height: 64, borderRadius: 20, borderWidth: 2, borderStyle: 'dashed', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 15 },
+  moreBtnText: { fontSize: 16, fontWeight: '800' },
+  cta: { height: 60, borderRadius: 18, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 10 },
+  ctaText: { color: '#fff', fontSize: 17, fontWeight: '800' },
 });
