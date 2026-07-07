@@ -13,7 +13,7 @@ type ScanContextType = {
   matches: StyleMatchItem[];
   selectedMatchIndex: number;
   toggleCategory: (cat: Category) => void;
-  setScanId: (id: string) => void;
+  setScanId: (id: string | null) => void;
   setFrontImageUri: (uri: string | null) => void;
   setMatches: (matches: StyleMatchItem[]) => void;
   setSelectedMatchIndex: (i: number) => void;
@@ -43,7 +43,7 @@ export function ScanProvider({ children }: { children: React.ReactNode }) {
         }
         setUserId(uid);
       } catch (err) {
-        console.error("Failed to init user:", err);
+        console.error("User init failed:", err);
       } finally {
         setIsLoadingUser(false);
       }
